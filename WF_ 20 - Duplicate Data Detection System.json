@@ -1,0 +1,313 @@
+{
+  "name": "WF: 20 - Duplicate Data Detection System",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "62be6636-ae4f-43f9-9672-8893f47b23a6",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f01db85f-6da6-4bfd-a138-55040de2330d",
+              "name": "records",
+              "value": "=[   { \"id\": 1, \"name\": \"John\", \"email\": \"john@example.com\" },   { \"id\": 2, \"name\": \"Alice\", \"email\": \"alice@example.com\" },   { \"id\": 3, \"name\": \"John\", \"email\": \"john@example.com\" },   { \"id\": 4, \"name\": \"Bob\", \"email\": \"bob@example.com\" },   { \"id\": 5, \"name\": \"Alice\", \"email\": \"alice@example.com\" } ]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "70ea4e75-a172-4ecc-8f08-e6f77e3e3183",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const records = $input.first().json.records;\n\nreturn records.map(record => ({\n  json: record\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "f1f1eece-8344-4c8b-933f-053e718823c3",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "745f7bf5-36a0-4dc7-bd9f-dee5306f0324",
+              "name": "duplicate_key",
+              "value": "={{ $json.name.toLowerCase().trim() + \"|\" + $json.email.toLowerCase().trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "8b65a803-f75c-4b6a-babc-bfbc4f4ff42e",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst groups = {};\n\nfor (const item of items) {\n  const key = item.json.duplicate_key;\n\n  if (!groups[key]) {\n    groups[key] = [];\n  }\n\n  groups[key].push(item.json);\n}\n\nreturn Object.entries(groups).map(([duplicate_key, records]) => ({\n  json: {\n    duplicate_key,\n    count: records.length,\n    records\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "87bd7c9e-7652-431c-9a98-0f50694382bc",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "828586ed-c08a-4dd9-bedd-f6a237b7ba5f",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "005f24c7-280d-49f9-b4f5-0c1e275a3562",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\n\nfor (const item of $input.all()) {\n  for (const record of item.json.records) {\n    output.push({\n      json: {\n        ...record,\n        is_duplicate: true\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        -96
+      ],
+      "id": "53271110-ddf4-46ef-a9ec-24c9161ef965",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\n\nfor (const item of $input.all()) {\n  for (const record of item.json.records) {\n    output.push({\n      json: {\n        ...record,\n        is_duplicate: false\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        96
+      ],
+      "id": "2c88f1af-aaed-42a7-860e-07ef4b401bae",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1520,
+        -32
+      ],
+      "id": "764eab56-7097-435b-91b2-505b2fef54cb",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c80d8492-4880-4232-88d5-d9c5def61830",
+              "leftValue": "={{ $json.is_duplicate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1728,
+        -32
+      ],
+      "id": "c2e10d06-8154-4ee4-bd34-f816294125ad",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8d129a53-fff2-4f94-8062-2ec03f32bd88",
+  "meta": {
+    "instanceId": "ceb3ffb1ce6351eb745546c7923af59c24e4013c76af82d858ab308f600b4483"
+  },
+  "nodeGroups": [],
+  "id": "7P6QxSWwhYXTdf26",
+  "tags": []
+}
